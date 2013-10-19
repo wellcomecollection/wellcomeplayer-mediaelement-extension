@@ -1,0 +1,268 @@
+/// <reference path="../../js/jquery.d.ts" />
+/// <reference path="../../js/extensions.d.ts" />
+
+import baseExtension = require("../../modules/coreplayer-shared-module/baseExtension");
+import coreExtension = require("../coreplayer-mediaelement-extension/extension");
+import utils = require("../../utils");
+import baseProvider = require("../../modules/coreplayer-shared-module/baseProvider");
+import provider = require("./provider");
+import shell = require("../../modules/coreplayer-shared-module/shell");
+import header = require("../../modules/coreplayer-shared-module/headerPanel");
+import right = require("../../modules/wellcomeplayer-moreinforightpanel-module/moreInfoRightPanel");
+import footer = require("../../modules/wellcomeplayer-extendedfooterpanel-module/footerPanel");
+import login = require("../../modules/wellcomeplayer-dialogues-module/loginDialogue");
+import conditions = require("../../modules/wellcomeplayer-dialogues-module/conditionsDialogue");
+import download = require("../../modules/wellcomeplayer-dialogues-module/downloadDialogue");
+import center = require("../../modules/coreplayer-mediaelementcenterpanel-module/mediaelementCenterPanel");
+import embed = require("../../extensions/coreplayer-mediaelement-extension/embedDialogue");
+import help = require("../../modules/coreplayer-dialogues-module/helpDialogue");
+import IWellcomeExtension = require("../../modules/wellcomeplayer-shared-module/iWellcomeExtension");
+import sharedBehaviours = require("../../modules/wellcomeplayer-shared-module/behaviours");
+import IProvider = require("../../modules/coreplayer-shared-module/iProvider");
+import IWellcomeProvider = require("../../modules/wellcomeplayer-shared-module/iWellcomeProvider");
+import IWellcomeMediaElementProvider = require("./iWellcomeMediaElementProvider");
+
+export class Extension extends coreExtension.Extension implements IWellcomeExtension{
+
+    $conditionsDialogue: JQuery;
+    conditionsDialogue: conditions.ConditionsDialogue;
+    $loginDialogue: JQuery;
+    loginDialogue: login.LoginDialogue;
+    $downloadDialogue: JQuery;
+    downloadDialogue: download.DownloadDialogue;
+    $helpDialogue: JQuery;
+    helpDialogue: help.HelpDialogue;
+
+    sessionTimer: any;
+
+    static WINDOW_UNLOAD: string = 'onWindowUnload';
+    static ESCAPE: string = 'onEscape';
+    static RETURN: string = 'onReturn';
+    static TRACK_EVENT: string = 'onTrackEvent';
+    static CLOSE_ACTIVE_DIALOGUE: string = 'onCloseActiveDialogue';
+    static SAVE: string = 'onSave';
+    static CREATED: string = 'onCreated';
+
+    behaviours: sharedBehaviours;
+
+    constructor(provider: IProvider) {
+        this.behaviours = new sharedBehaviours(this);
+
+        super(provider);
+    }
+
+    create(): void {
+        super.create();
+
+        // keyboard events.
+        $(document).keyup((e) => {
+            if (e.keyCode === 27) $.publish(Extension.ESCAPE);
+            if (e.keyCode === 13) $.publish(Extension.RETURN);
+        });
+
+        $.subscribe(Extension.ESCAPE, () => {
+            if (this.isFullScreen) {
+                $.publish(baseExtension.BaseExtension.TOGGLE_FULLSCREEN);
+            }
+        });
+
+        // track unload
+        $(window).bind('unload', () => {
+            this.trackAction("Documents", "Unloaded");
+            $.publish(Extension.WINDOW_UNLOAD);
+        });
+
+        $.subscribe(footer.FooterPanel.DOWNLOAD, (e) => {
+            $.publish(download.DownloadDialogue.SHOW_DOWNLOAD_DIALOGUE);
+        });
+
+        $.subscribe(footer.FooterPanel.SAVE, (e) => {
+            this.save();
+        });
+
+        $.subscribe(login.LoginDialogue.LOGIN, (e, params: any) => {
+            this.login(params);
+        });
+
+        // publish created event
+        $.publish(Extension.CREATED);
+    }
+
+    createModules(): void{
+        this.headerPanel = new header.HeaderPanel(shell.Shell.$headerPanel);
+
+        this.centerPanel = new center.MediaElementCenterPanel(shell.Shell.$centerPanel);
+        this.rightPanel = new right.MoreInfoRightPanel(shell.Shell.$rightPanel);
+        this.footerPanel = new footer.FooterPanel(shell.Shell.$footerPanel);
+
+        this.$conditionsDialogue = utils.Utils.createDiv('overlay conditions');
+        shell.Shell.$overlays.append(this.$conditionsDialogue);
+        this.conditionsDialogue = new conditions.ConditionsDialogue(this.$conditionsDialogue);
+
+        this.$loginDialogue = utils.Utils.createDiv('overlay login');
+        shell.Shell.$overlays.append(this.$loginDialogue);
+        this.loginDialogue = new login.LoginDialogue(this.$loginDialogue);
+
+        this.$embedDialogue = utils.Utils.createDiv('overlay embed');
+        shell.Shell.$overlays.append(this.$embedDialogue);
+        this.embedDialogue = new embed.EmbedDialogue(this.$embedDialogue);
+
+        this.$downloadDialogue = utils.Utils.createDiv('overlay download');
+        shell.Shell.$overlays.append(this.$downloadDialogue);
+        this.downloadDialogue = new download.DownloadDialogue(this.$downloadDialogue);
+
+        this.$helpDialogue = utils.Utils.createDiv('overlay help');
+        shell.Shell.$overlays.append(this.$helpDialogue);
+        this.helpDialogue = new help.HelpDialogue(this.$helpDialogue);
+    }
+
+    viewMedia(){
+
+        var assetIndex = 0;
+
+        this.prefetchAsset(assetIndex, () => {
+
+            // successfully prefetched.
+
+            var asset = this.provider.assetSequence.assets[assetIndex];
+
+            $.publish(Extension.OPEN_MEDIA, [asset.fileUri]);
+
+            this.setParam(baseProvider.params.assetIndex, assetIndex);
+
+            // todo: add this to more general trackEvent
+            this.updateSlidingExpiration();
+        });
+    }
+
+    save(): void {
+
+        if (!this.isLoggedIn()) {
+            this.showLoginDialogue({
+                successCallback: () => {
+                    this.save();
+                },
+                failureCallback: (message: string) => {
+                    this.showDialogue(message);
+                },
+                allowClose: true,
+                message: this.provider.config.modules.genericDialogue.content.loginToSave
+            });
+        } else {
+            var path = (<IWellcomeProvider>this.provider).getSaveUri();
+            var thumbnail =  (<IWellcomeMediaElementProvider>this.provider).getThumbUri();
+            var title = this.provider.getTitle();
+
+            var info = (<IWellcomeMediaElementProvider>this.provider).getSaveInfo(path, thumbnail, title);
+            this.triggerSocket(Extension.SAVE, info);
+        }
+    }
+
+    setParams(): void{
+        // check if there are legacy params and reformat.
+        // if the string isn't empty and doesn't contain a ? sign it's a legacy hash.
+        var hash = parent.document.location.hash;
+
+        if (hash != '' && !hash.contains('?')){
+            // split params on '/'.
+            var params = hash.replace('#', '').split('/');
+
+            // reset hash to empty.
+            parent.document.location.hash = '';
+
+            // assetSequenceIndex
+            if (params[0]){
+                this.setParam(baseProvider.params.assetSequenceIndex, this.provider.assetSequenceIndex);
+            }
+
+            // assetIndex
+            if (params[1]){
+                this.setParam(baseProvider.params.assetIndex, params[1]);
+            }
+
+        } else {
+            // set assetSequenceIndex hash param.
+            this.setParam(baseProvider.params.assetSequenceIndex, this.provider.assetSequenceIndex);
+        }
+    }
+
+    // everything from here down is common to wellcomplayer extensions.
+
+    viewIndex(assetIndex: number, successCallback?: any): void {
+        this.behaviours.viewIndex(assetIndex, successCallback);
+    }
+
+    // ensures that a file is in the server cache.
+    prefetchAsset(assetIndex: number, successCallback: any): void{
+        this.behaviours.prefetchAsset(assetIndex, successCallback);
+    }
+
+    authorise(assetIndex: number, successCallback: any, failureCallback: any): void {
+        this.behaviours.authorise(assetIndex, successCallback, failureCallback);        
+    }
+
+    login(params: any): void {
+        this.behaviours.login(params);
+    }
+
+    viewNextAvailableIndex(requestedIndex: number, callback: any): void {
+        this.behaviours.viewNextAvailableIndex(requestedIndex, callback);        
+    }
+
+    // pass direction as 1 or -1.
+    nextAvailableIndex(direction: number, requestedIndex: number): number {
+        return this.behaviours.nextAvailableIndex(direction, requestedIndex);
+    }
+
+    showLoginDialogue(params): void {
+        this.behaviours.showLoginDialogue(params);
+    }
+
+    isLoggedIn(): boolean {
+        return this.behaviours.isLoggedIn();
+    }
+
+    hasPermissionToViewCurrentItem(): boolean{
+        return this.behaviours.hasPermissionToViewCurrentItem();
+    }
+
+    isAuthorised(assetIndex): boolean {
+        return this.behaviours.isAuthorised(assetIndex);
+    }
+
+    showRestrictedFileDialogue(params): void {
+        this.behaviours.showRestrictedFileDialogue(params);
+    }
+
+    getInadequatePermissionsMessage(assetIndex): string {
+        return this.behaviours.getInadequatePermissionsMessage(assetIndex);
+    }
+
+    allowCloseLogin(): boolean {
+        return this.behaviours.allowCloseLogin();
+    }
+
+    updateSlidingExpiration(): void {
+        this.behaviours.updateSlidingExpiration();
+    }
+
+    closeActiveDialogue(): void{
+        this.behaviours.closeActiveDialogue();
+    }
+
+    trackAction(category: string, action: string): void {
+        this.behaviours.trackAction(category, action);
+    }
+
+    getTrackActionLabel(): string {
+        return this.behaviours.getTrackActionLabel();
+    }
+
+    isSaveToLightboxEnabled(): boolean {
+        return this.behaviours.isSaveToLightboxEnabled();
+    }
+
+    isDownloadEnabled(): boolean {
+        return this.behaviours.isDownloadEnabled();
+    }
+}

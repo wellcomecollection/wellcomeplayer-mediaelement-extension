@@ -2,8 +2,9 @@
 /// <reference path="../../js/extensions.d.ts" />
 import coreProvider = require("../coreplayer-mediaelement-extension/provider");
 import utils = require("../../utils");
+import IWellcomeMediaElementProvider = require("./iWellcomeMediaElementProvider");
 
-export class Provider extends coreProvider.Provider {
+export class Provider extends coreProvider.Provider implements IWellcomeMediaElementProvider {
 
     constructor(config: any, pkg: any) {
         super(config, pkg);
@@ -38,14 +39,18 @@ export class Provider extends coreProvider.Provider {
         return String.prototype.format(this.config.options.assetsUriTemplate, baseUri, asset.fileUri);
     }
 
-    getLoginUri(username: string, password: string) {
+    getLoginUri(username: string, password: string): string {
         var baseUri = this.config.options.loginBaseUri || this.config.options.dataBaseUri || "";
         var uri = String.prototype.format(this.config.options.loginUriTemplate, baseUri, username, password, utils.Utils.getTimeStamp());
         if (this.config.options.isSecureLogin) uri = uri.replace("http:", "https:");
         return uri;
     }
 
-    getSaveUrl(): string {
+    getThumbUri(): string{
+        return this.assetSequence.extensions.posterImage;
+    }
+
+    getSaveUri(): string {
         var absUri = parent.document.URL;
         var parts = utils.Utils.getUrlParts(absUri);
         var relUri = parts.pathname + parent.document.location.hash;
@@ -57,9 +62,7 @@ export class Provider extends coreProvider.Provider {
         return relUri;
     }
 
-    // this is different from the seadragon provider - all above is same, but with parts removed.
-
-    getSaveInfo(path, thumbnail, title) {
+    getSaveInfo(path: string, thumbnail: string, title: string): any {
         return {
             "CaptureType": "v",
             "Path": path,
