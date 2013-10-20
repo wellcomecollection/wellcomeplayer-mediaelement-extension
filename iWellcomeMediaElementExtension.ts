@@ -1,7 +1,7 @@
 
-import IWellcomeExtension = require("../../modules/wellcomeplayer-shared-module/iWellcomeExtension");
+import IMediaElementExtension = require("../coreplayer-mediaelement-extension/iMediaElementExtension");
 
-interface IWellcomeMediaElementExtension extends IWellcomeExtension{
+interface IWellcomeMediaElementExtension extends IMediaElementExtension{
 
 }
 
