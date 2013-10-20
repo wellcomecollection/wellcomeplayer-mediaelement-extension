@@ -21,8 +21,9 @@ import sharedBehaviours = require("../../modules/wellcomeplayer-shared-module/be
 import IProvider = require("../../modules/coreplayer-shared-module/iProvider");
 import IWellcomeProvider = require("../../modules/wellcomeplayer-shared-module/iWellcomeProvider");
 import IWellcomeMediaElementProvider = require("./iWellcomeMediaElementProvider");
+import IWellcomeMediaElementExtension = require("./iWellcomeMediaElementExtension");
 
-export class Extension extends coreExtension.Extension implements IWellcomeExtension{
+export class Extension extends coreExtension.Extension implements IWellcomeMediaElementExtension{
 
     $conditionsDialogue: JQuery;
     conditionsDialogue: conditions.ConditionsDialogue;
@@ -35,11 +36,6 @@ export class Extension extends coreExtension.Extension implements IWellcomeExten
 
     sessionTimer: any;
 
-    static WINDOW_UNLOAD: string = 'onWindowUnload';
-    static ESCAPE: string = 'onEscape';
-    static RETURN: string = 'onReturn';
-    static TRACK_EVENT: string = 'onTrackEvent';
-    static CLOSE_ACTIVE_DIALOGUE: string = 'onCloseActiveDialogue';
     static SAVE: string = 'onSave';
     static CREATED: string = 'onCreated';
 
@@ -77,6 +73,9 @@ export class Extension extends coreExtension.Extension implements IWellcomeExten
         });
 
         $.subscribe(footer.FooterPanel.SAVE, (e) => {
+            if (this.isFullScreen) {
+                $.publish(baseExtension.BaseExtension.TOGGLE_FULLSCREEN);
+            }
             this.save();
         });
 
@@ -120,18 +119,24 @@ export class Extension extends coreExtension.Extension implements IWellcomeExten
 
         var assetIndex = 0;
 
-        this.prefetchAsset(assetIndex, () => {
+        // authorise.
+        this.viewIndex(assetIndex, () => {
+            
+            // successfully authorised. prefetch asset.
+            this.prefetchAsset(assetIndex, () => {
 
-            // successfully prefetched.
+                // successfully prefetched.
 
-            var asset = this.provider.assetSequence.assets[assetIndex];
+                var asset = this.provider.assetSequence.assets[assetIndex];
 
-            $.publish(Extension.OPEN_MEDIA, [asset.fileUri]);
+                $.publish(Extension.OPEN_MEDIA, [asset.fileUri]);
 
-            this.setParam(baseProvider.params.assetIndex, assetIndex);
+                this.setParam(baseProvider.params.assetIndex, assetIndex);
 
-            // todo: add this to more general trackEvent
-            this.updateSlidingExpiration();
+                // todo: add this to more general trackEvent
+                this.updateSlidingExpiration();
+            });
+            
         });
     }
 
