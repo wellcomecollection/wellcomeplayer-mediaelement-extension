@@ -52,7 +52,7 @@ export class Extension extends coreExtension.Extension implements IWellcomeMedia
 
         // track unload
         $(window).bind('unload', () => {
-            this.trackAction("Documents", "Unloaded");
+            //this.trackEvent("Documents", "Unloaded");
             $.publish(baseExtension.BaseExtension.WINDOW_UNLOAD);
         });
 
@@ -239,12 +239,12 @@ export class Extension extends coreExtension.Extension implements IWellcomeMedia
         this.behaviours.updateSlidingExpiration();
     }
 
-    trackAction(category: string, action: string): void {
-        this.behaviours.trackAction(category, action);
+    trackEvent(category: string, action: string, label: string): void {
+        this.behaviours.trackEvent(category, action, label);
     }
 
-    getTrackActionLabel(): string {
-        return this.behaviours.getTrackActionLabel();
+    trackVariable(slot: number, name: string, value: string, scope: number): void{
+        this.behaviours.trackVariable(slot, name, value, scope);
     }
 
     isSaveToLightboxEnabled(): boolean {
