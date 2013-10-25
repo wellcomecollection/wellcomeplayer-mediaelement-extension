@@ -37,7 +37,6 @@ export class Extension extends coreExtension.Extension implements IWellcomeMedia
     sessionTimer: any;
 
     static SAVE: string = 'onSave';
-    static CREATED: string = 'onCreated';
 
     behaviours: sharedBehaviours;
 
@@ -239,8 +238,8 @@ export class Extension extends coreExtension.Extension implements IWellcomeMedia
         this.behaviours.updateSlidingExpiration();
     }
 
-    trackEvent(category: string, action: string, label: string): void {
-        this.behaviours.trackEvent(category, action, label);
+    trackEvent(category: string, action: string, label: string, value: string): void {
+        this.behaviours.trackEvent(category, action, label, value);
     }
 
     trackVariable(slot: number, name: string, value: string, scope: number): void{
