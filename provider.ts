@@ -15,7 +15,8 @@ export class Provider extends coreProvider.Provider implements IWellcomeMediaEle
             assetsUriTemplate: '{0}{1}',
             loginUriTemplate: '{0}/service/login?username={1}&password={2}&setCookies=true&t={3}',
             pdfUriTemplate: '{0}/pdf/{1}/{2}/{3}_{2}.pdf',
-            isSecureLogin: false
+            isSecureLogin: false,
+            embedScriptUri: 'http://wellcomelibrary.org/spas/player/build/wellcomeplayer/js/embed.js'
         });
     }
 
