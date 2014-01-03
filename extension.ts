@@ -8,6 +8,7 @@ import baseProvider = require("../../modules/coreplayer-shared-module/baseProvid
 import provider = require("./provider");
 import shell = require("../../modules/coreplayer-shared-module/shell");
 import header = require("../../modules/coreplayer-shared-module/headerPanel");
+import left = require("../../modules/coreplayer-treeviewleftpanel-module/treeViewLeftPanel");
 import right = require("../../modules/wellcomeplayer-moreinforightpanel-module/moreInfoRightPanel");
 import footer = require("../../modules/wellcomeplayer-extendedfooterpanel-module/footerPanel");
 import login = require("../../modules/wellcomeplayer-dialogues-module/loginDialogue");
@@ -77,6 +78,10 @@ export class Extension extends coreExtension.Extension implements IWellcomeMedia
     createModules(): void{
         this.headerPanel = new header.HeaderPanel(shell.Shell.$headerPanel);
 
+        if (this.isLeftPanelEnabled()){
+            this.leftPanel = new left.TreeViewLeftPanel(shell.Shell.$leftPanel);
+        }
+
         this.centerPanel = new center.MediaElementCenterPanel(shell.Shell.$centerPanel);
         this.rightPanel = new right.MoreInfoRightPanel(shell.Shell.$rightPanel);
         this.footerPanel = new footer.FooterPanel(shell.Shell.$footerPanel);
@@ -116,7 +121,7 @@ export class Extension extends coreExtension.Extension implements IWellcomeMedia
 
                 var asset = this.provider.assetSequence.assets[assetIndex];
 
-                $.publish(Extension.OPEN_MEDIA, [asset.fileUri]);
+                $.publish(Extension.OPEN_MEDIA, [asset]);
 
                 this.setParam(baseProvider.params.assetIndex, assetIndex);
 
