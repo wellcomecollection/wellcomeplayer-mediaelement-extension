@@ -34,6 +34,7 @@ export class Extension extends coreExtension.Extension implements IWellcomeMedia
     downloadDialogue: download.DownloadDialogue;
     $helpDialogue: JQuery;
     helpDialogue: help.HelpDialogue;
+    $restrictedFileDialogue: JQuery;
 
     sessionTimer: any;
 
