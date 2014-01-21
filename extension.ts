@@ -71,7 +71,7 @@ export class Extension extends coreExtension.Extension implements IWellcomeMedia
         $.subscribe(login.LoginDialogue.LOGIN, (e, params: any) => {
             this.login(params);
         });
-        
+
         // publish created event
         $.publish(Extension.CREATED);
     }
@@ -114,22 +114,24 @@ export class Extension extends coreExtension.Extension implements IWellcomeMedia
 
         // authorise.
         this.viewIndex(assetIndex, () => {
-            
-            // successfully authorised. prefetch asset.
-            this.prefetchAsset(assetIndex, () => {
 
-                // successfully prefetched.
+            var asset = this.provider.assetSequence.assets[assetIndex];
 
-                var asset = this.provider.assetSequence.assets[assetIndex];
-
+            // if the asset doesn't have multiple sources, do a prefetch
+            if (!asset.sources){
+                // successfully authorised. prefetch asset.
+                this.prefetchAsset(assetIndex, () => {
+                    // successfully prefetched.
+                    $.publish(Extension.OPEN_MEDIA, [asset]);
+                    this.setParam(baseProvider.params.assetIndex, assetIndex);
+                    this.updateSlidingExpiration();
+                });
+            } else {
                 $.publish(Extension.OPEN_MEDIA, [asset]);
-
                 this.setParam(baseProvider.params.assetIndex, assetIndex);
-
-                // todo: add this to more general trackEvent
                 this.updateSlidingExpiration();
-            });
-            
+            }
+
         });
     }
 
@@ -157,7 +159,7 @@ export class Extension extends coreExtension.Extension implements IWellcomeMedia
     }
 
     setParams(): void{
-        if (!this.provider.isHomeDomain) return;  
+        if (!this.provider.isHomeDomain) return;
 
         // check if there are legacy params and reformat.
         // if the string isn't empty and doesn't contain a ? sign it's a legacy hash.
@@ -198,7 +200,7 @@ export class Extension extends coreExtension.Extension implements IWellcomeMedia
     }
 
     authorise(assetIndex: number, successCallback: any, failureCallback: any): void {
-        this.behaviours.authorise(assetIndex, successCallback, failureCallback);        
+        this.behaviours.authorise(assetIndex, successCallback, failureCallback);
     }
 
     login(params: any): void {
@@ -206,7 +208,7 @@ export class Extension extends coreExtension.Extension implements IWellcomeMedia
     }
 
     viewNextAvailableIndex(requestedIndex: number, callback: any): void {
-        this.behaviours.viewNextAvailableIndex(requestedIndex, callback);        
+        this.behaviours.viewNextAvailableIndex(requestedIndex, callback);
     }
 
     // pass direction as 1 or -1.
