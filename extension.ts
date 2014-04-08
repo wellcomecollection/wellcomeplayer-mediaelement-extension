@@ -71,9 +71,6 @@ export class Extension extends coreExtension.Extension implements IWellcomeMedia
         $.subscribe(login.LoginDialogue.LOGIN, (e, params: any) => {
             this.login(params);
         });
-
-        // publish created event
-        $.publish(Extension.CREATED);
     }
 
     createModules(): void{
