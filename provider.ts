@@ -6,8 +6,8 @@ import IWellcomeMediaElementProvider = require("./iWellcomeMediaElementProvider"
 
 export class Provider extends coreProvider.Provider implements IWellcomeMediaElementProvider {
 
-    constructor(config: any, pkg: any) {
-        super(config, pkg);
+    constructor(config: any, manifest: any) {
+        super(config, manifest);
 
         $.extend(true, this.config.options, {
             moreInfoUriTemplate: '{0}{1}',
@@ -22,7 +22,7 @@ export class Provider extends coreProvider.Provider implements IWellcomeMediaEle
 
     getMoreInfoUri(): string{
         var baseUri = this.options.dataBaseUri || "";
-        var uri = baseUri + this.pkg.bibliographicInformation;
+        var uri = baseUri + this.manifest.bibliographicInformation;
 
         if (this.options.timestampUris) uri = this.addTimestamp(uri);
 
@@ -48,7 +48,7 @@ export class Provider extends coreProvider.Provider implements IWellcomeMediaEle
     }
 
     getThumbUri(): string{
-        return this.assetSequence.extensions.posterImage;
+        return this.sequence.extensions.posterImage;
     }
 
     getSaveUri(): string {
