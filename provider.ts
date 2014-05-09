@@ -6,6 +6,8 @@ import IWellcomeMediaElementProvider = require("./iWellcomeMediaElementProvider"
 
 export class Provider extends coreProvider.Provider implements IWellcomeMediaElementProvider {
 
+    moreInfo: any;
+
     constructor(config: any, manifest: any) {
         super(config, manifest);
 
